@@ -1,60 +1,72 @@
 # 工作流名称，自定义
 name: Docker 镜像同步 (拉取 → 推送阿里云ACR)
-# 触发规则：2种方式，按需选择/同时开启
+
+# 触发规则：
 on:
-  # 方式1：手动触发（推荐，最灵活！在GitHub仓库的Actions页面点击Run workflow即可）
+  # 方式1：手动触发
   workflow_dispatch:
-  # 方式2：当修改 mirror-list.txt 配置文件并push到GitHub后，自动触发同步
+  
+  # 方式2：代码推送触发
   push:
+    branches: [ "main", "master" ]
     paths:
-      - 'mirror-list.txt'
+      - 'mirror-list.txt'                   # 当镜像列表变化时触发
+      # - '.github/workflows/sync-docker.yaml' # 当工作流文件本身修改时也触发（方便调试）
 
 # 工作流核心任务
 jobs:
   sync-images:
-    # 运行环境：GitHub官方的ubuntu最新版，自带docker环境，无需额外安装
     runs-on: ubuntu-latest
     steps:
-      # 步骤1：拉取当前GitHub仓库的代码（拿到mirror-list.txt配置文件）
       - name: 拉取仓库代码
         uses: actions/checkout@v4
 
-      # 步骤2：配置阿里云镜像仓库信息（★★★ 只改这里！★★★）
+      # 配置阿里云 ACR 参数
       - name: 配置阿里云ACR参数
         run: |
-          echo "ALIYUN_REGISTRY=${{ secrets.ALIYUN_REGISTRY || 'registry.cn-hangzhou.aliyuncs.com' }}" >> $GITHUB_ENV  # 你的阿里云镜像仓库地址
-          echo "ALIYUN_NAMESPACE=${{ secrets.ALIYUN_NAMESPACE || 'my-docker-repo' }}" >> $GITHUB_ENV                 # 你的阿里云命名空间
-          echo "ALIYUN_USERNAME=${{ secrets.ALIYUN_USERNAME || '你的阿里云账号(手机号/邮箱)' }}" >> $GITHUB_ENV     # 阿里云ACR用户名
-          echo "ALIYUN_PASSWORD=${{ secrets.ALIYUN_PASSWORD || '你的阿里云ACR访问凭证密码' }}" >> $GITHUB_ENV      # 阿里云ACR密码
+          echo "ALIYUN_REGISTRY=${{ secrets.ALIYUN_REGISTRY || 'registry.cn-hangzhou.aliyuncs.com' }}" >> $GITHUB_ENV
+          echo "ALIYUN_NAMESPACE=${{ secrets.ALIYUN_NAMESPACE || 'my-docker-repo' }}" >> $GITHUB_ENV
+          echo "ALIYUN_USERNAME=${{ secrets.ALIYUN_USERNAME || '你的阿里云账号' }}" >> $GITHUB_ENV
+          echo "ALIYUN_PASSWORD=${{ secrets.ALIYUN_PASSWORD || '你的阿里云ACR密码' }}" >> $GITHUB_ENV
 
-      # 步骤3：登录阿里云镜像仓库（docker login）
+      # 登录阿里云 ACR
       - name: 登录阿里云ACR
         run: |
+          echo "正在登录阿里云镜像仓库..."
           docker login ${{ env.ALIYUN_REGISTRY }} -u ${{ env.ALIYUN_USERNAME }} -p ${{ env.ALIYUN_PASSWORD }}
 
-      # 步骤4：核心逻辑 - 循环读取镜像列表，拉取镜像 → 打标签 → 推送镜像
-      - name: 批量同步镜像 (拉取+打标+推送)
+      # 批量同步镜像
+      - name: 批量同步镜像
         run: |
-          # 读取mirror-list.txt，过滤注释和空行，循环处理每个镜像
+          # 检查 mirror-list.txt 是否存在
+          if [ ! -f mirror-list.txt ]; then
+            echo "❌ 错误: mirror-list.txt 文件不存在！"
+            exit 1
+          fi
+
+          echo "开始读取镜像列表..."
           cat mirror-list.txt | grep -v '^#' | grep -v '^$' | while read -r SOURCE_IMAGE; do
-            echo -e "\n====================================="
-            echo "开始同步镜像: $SOURCE_IMAGE"
+            echo "----------------------------------------------------"
+            echo "🚀 正在处理: $SOURCE_IMAGE"
             
-            # 1. 从官方源拉取镜像（GitHub海外网络，速度极快，不会超时）
+            # 1. 拉取镜像
+            echo "📥 Pulling $SOURCE_IMAGE ..."
             docker pull $SOURCE_IMAGE
             
-            # 2. 为镜像打「阿里云仓库」的标签，格式：阿里云地址/命名空间/镜像名:版本
-            # 处理镜像名，兼容各种格式，自动提取镜像名和tag
+            # 2. 打标签
             IMAGE_NAME=$(echo $SOURCE_IMAGE | awk -F '/' '{print $NF}')
             TARGET_IMAGE="${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${IMAGE_NAME}"
+            echo "🏷️ Tagging as $TARGET_IMAGE ..."
             docker tag $SOURCE_IMAGE $TARGET_IMAGE
             
-            # 3. 推送镜像到阿里云镜像仓库
+            # 3. 推送镜像
+            echo "📤 Pushing to Aliyun ACR ..."
             docker push $TARGET_IMAGE
             
-            echo "✅ 镜像同步完成: $TARGET_IMAGE"
+            echo "✅ 完成: $SOURCE_IMAGE -> $TARGET_IMAGE"
           done
-
-      # 步骤5：登出阿里云镜像仓库（安全规范）
+          
+      # 登出
       - name: 登出阿里云ACR
+        if: always()
         run: docker logout ${{ env.ALIYUN_REGISTRY }}
