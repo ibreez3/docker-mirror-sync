@@ -13,6 +13,9 @@ on:
       - 'mirror-list.txt'                   # 当镜像列表变化时触发
       # - '.github/workflows/sync-docker.yaml' # 当工作流文件本身修改时也触发（方便调试）
 
+permissions:
+  contents: write # 允许 workflow 提交代码修改 (修改 mirror-list.txt)
+
 # 工作流核心任务
 jobs:
   sync-images:
@@ -20,6 +23,12 @@ jobs:
     steps:
       - name: 拉取仓库代码
         uses: actions/checkout@v4
+
+      # 安装 Skopeo 工具 (用于支持多架构镜像同步)
+      - name: 安装 Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
 
       # 配置阿里云 ACR 参数
       - name: 配置阿里云ACR参数
@@ -29,14 +38,15 @@ jobs:
           echo "ALIYUN_USERNAME=${{ secrets.ALIYUN_USERNAME || '你的阿里云账号' }}" >> $GITHUB_ENV
           echo "ALIYUN_PASSWORD=${{ secrets.ALIYUN_PASSWORD || '你的阿里云ACR密码' }}" >> $GITHUB_ENV
 
-      # 登录阿里云 ACR
+      # 登录阿里云 ACR (使用 skopeo login)
       - name: 登录阿里云ACR
         run: |
           echo "正在登录阿里云镜像仓库..."
-          docker login ${{ env.ALIYUN_REGISTRY }} -u ${{ env.ALIYUN_USERNAME }} -p ${{ env.ALIYUN_PASSWORD }}
+          skopeo login ${{ env.ALIYUN_REGISTRY }} -u ${{ env.ALIYUN_USERNAME }} -p ${{ env.ALIYUN_PASSWORD }}
 
       # 批量同步镜像
       - name: 批量同步镜像
+        id: sync
         run: |
           # 检查 mirror-list.txt 是否存在
           if [ ! -f mirror-list.txt ]; then
@@ -45,28 +55,78 @@ jobs:
           fi
 
           echo "开始读取镜像列表..."
-          cat mirror-list.txt | grep -v '^#' | grep -v '^$' | while read -r SOURCE_IMAGE; do
+          # 使用 Python 脚本获取 pending 列表
+          PENDING_IMAGES=$(python3 utils/manage_list.py get_pending)
+          
+          if [ -z "$PENDING_IMAGES" ]; then
+            echo "没有需要同步的镜像 (Pending list is empty)."
+            exit 0
+          fi
+
+          SUCCESS_LIST=""
+
+          # 设置 Internal Field Separator 为换行符，以便正确处理多行输出
+          IFS=$'\n'
+          for SOURCE_IMAGE in $PENDING_IMAGES; do
             echo "----------------------------------------------------"
             echo "🚀 正在处理: $SOURCE_IMAGE"
             
-            # 1. 拉取镜像
-            echo "📥 Pulling $SOURCE_IMAGE ..."
-            docker pull $SOURCE_IMAGE
-            
-            # 2. 打标签
+            # 计算目标镜像名称
             IMAGE_NAME=$(echo $SOURCE_IMAGE | awk -F '/' '{print $NF}')
             TARGET_IMAGE="${{ env.ALIYUN_REGISTRY }}/${{ env.ALIYUN_NAMESPACE }}/${IMAGE_NAME}"
-            echo "🏷️ Tagging as $TARGET_IMAGE ..."
-            docker tag $SOURCE_IMAGE $TARGET_IMAGE
             
-            # 3. 推送镜像
-            echo "📤 Pushing to Aliyun ACR ..."
-            docker push $TARGET_IMAGE
+            # 构造完整的源和目标引用 (Skopeo 需要 docker:// 前缀)
+            SRC_REF="docker://$SOURCE_IMAGE"
+            DEST_REF="docker://$TARGET_IMAGE"
+
+            # 0. 检查镜像是否已存在（可选，但既然用了 pending/complete 机制，这里可以保留作为双重保险，或者去掉以加速）
+            # 这里保留检查，防止手动修改文件导致的重复同步
+            echo "🔍 检查目标镜像是否存在: $TARGET_IMAGE"
+            if skopeo inspect $DEST_REF > /dev/null 2>&1; then
+              echo "⚠️  镜像已存在，跳过同步！"
+              SUCCESS_LIST="$SUCCESS_LIST $SOURCE_IMAGE"
+              echo "----------------------------------------------------"
+              continue
+            fi
             
-            echo "✅ 完成: $SOURCE_IMAGE -> $TARGET_IMAGE"
+            # 1. 使用 Skopeo 同步镜像 (支持多架构 --all)
+            echo "🔄 Syncing $SOURCE_IMAGE -> $TARGET_IMAGE ..."
+            if skopeo copy --all $SRC_REF $DEST_REF; then
+                echo "✅ 同步成功: $SOURCE_IMAGE"
+                SUCCESS_LIST="$SUCCESS_LIST $SOURCE_IMAGE"
+            else
+                echo "❌ 同步失败: $SOURCE_IMAGE"
+            fi
           done
+          unset IFS
           
+          # 将成功列表写入环境变量，供下一步使用
+          # 注意：GitHub Actions 环境变量不支持直接换行，需要特殊处理，或者写入文件
+          echo "SUCCESS_IMAGES=$SUCCESS_LIST" >> $GITHUB_ENV
+
+      # 更新 mirror-list.txt 并提交
+      - name: 更新镜像列表并提交
+        if: env.SUCCESS_IMAGES != ''
+        run: |
+          echo "正在更新 mirror-list.txt ..."
+          # 传入成功同步的镜像列表
+          python3 utils/manage_list.py move_to_complete ${{ env.SUCCESS_IMAGES }}
+          
+          # 配置 git 用户
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          # 提交修改
+          git add mirror-list.txt
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore: update mirror-list.txt (move synced images to complete)"
+            git push
+            echo "✅ 已提交并推送修改。"
+          fi
+
       # 登出
       - name: 登出阿里云ACR
         if: always()
-        run: docker logout ${{ env.ALIYUN_REGISTRY }}
+        run: skopeo logout ${{ env.ALIYUN_REGISTRY }}
