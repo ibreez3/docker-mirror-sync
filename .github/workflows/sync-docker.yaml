@@ -130,3 +130,19 @@ jobs:
       - name: 登出阿里云ACR
         if: always()
         run: skopeo logout ${{ env.ALIYUN_REGISTRY }}
+
+      # 发送钉钉通知 (无论成功失败都执行)
+      - name: 发送钉钉通知
+        if: always()
+        run: |
+          pip install requests
+          python3 utils/dingtalk_notify.py
+        env:
+          # 建议后续将这些敏感信息配置到 GitHub Secrets 中
+          DINGTALK_ACCESS_TOKEN: ${{ secrets.DINGTALK_ACCESS_TOKEN }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
+          WORKFLOW_STATUS: ${{ job.status }}
+          SUCCESS_IMAGES: ${{ env.SUCCESS_IMAGES }}
+          ALIYUN_REGISTRY: ${{ env.ALIYUN_REGISTRY }}
+          ALIYUN_NAMESPACE: ${{ env.ALIYUN_NAMESPACE }}
+
