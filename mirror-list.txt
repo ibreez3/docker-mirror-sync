@@ -1,4 +1,5 @@
 [pending]
+postgres:14.20
 
 [complete]
 ubuntu:22.04
