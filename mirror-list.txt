@@ -1,5 +1,5 @@
 [pending]
-
+redis:8.4.0
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
