@@ -1,5 +1,5 @@
 [pending]
-qdrant/qdrant:latest
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -7,3 +7,4 @@ postgres:14.20
 golang:1.24.9
 mysql:9.5.0
 redis:8.4.0
+qdrant/qdrant:latest
