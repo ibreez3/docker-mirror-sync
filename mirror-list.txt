@@ -1,5 +1,6 @@
 [pending]
-
+mongo:7
+redis:7-alpine
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
