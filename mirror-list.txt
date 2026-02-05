@@ -1,5 +1,6 @@
 [pending]
-
+traefik:v2.10
+node:22-alpine
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
