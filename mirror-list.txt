@@ -1,4 +1,6 @@
 [pending]
+snowdreamtech/frps:0.67
+snowdreamtech/frpc:0.67
 
 [complete]
 ubuntu:22.04
