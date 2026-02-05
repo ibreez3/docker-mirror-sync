@@ -1,6 +1,5 @@
 [pending]
-traefik:v2.10
-node:22-alpine
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -11,3 +10,5 @@ redis:8.4.0
 qdrant/qdrant:latest
 mongo:7
 redis:7-alpine
+traefik:v2.10
+node:22-alpine
