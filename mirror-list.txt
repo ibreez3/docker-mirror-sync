@@ -1,6 +1,4 @@
 [pending]
-snowdreamtech/frps:0.67
-snowdreamtech/frpc:0.67
 
 [complete]
 ubuntu:22.04
@@ -14,3 +12,5 @@ mongo:7
 redis:7-alpine
 traefik:v2.10
 node:22-alpine
+snowdreamtech/frps:0.67
+snowdreamtech/frpc:0.67
