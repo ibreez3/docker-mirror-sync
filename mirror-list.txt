@@ -1,5 +1,5 @@
 [pending]
-ubuntu:24.04
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -14,3 +14,4 @@ traefik:v2.10
 node:22-alpine
 snowdreamtech/frps:0.67
 snowdreamtech/frpc:0.67
+ubuntu:24.04
