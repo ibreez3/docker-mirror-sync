@@ -1,5 +1,5 @@
 [pending]
-bitnami/minio:latest
+ubuntu:24.04
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
