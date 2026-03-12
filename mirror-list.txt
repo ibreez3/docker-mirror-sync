@@ -1,5 +1,5 @@
 [pending]
-prom/prometheus:v2.40.0
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -15,3 +15,4 @@ node:22-alpine
 snowdreamtech/frps:0.67
 snowdreamtech/frpc:0.67
 ubuntu:24.04
+prom/prometheus:v2.40.0
