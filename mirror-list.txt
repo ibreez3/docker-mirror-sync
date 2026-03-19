@@ -1,5 +1,5 @@
 [pending]
-busybox:1.36
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -16,3 +16,4 @@ snowdreamtech/frps:0.67
 snowdreamtech/frpc:0.67
 ubuntu:24.04
 prom/prometheus:v2.40.0
+busybox:1.36
