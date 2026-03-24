@@ -1,5 +1,9 @@
 [pending]
-
+linuxserver/qbittorrent:5.1.4
+linuxserver/jackett:0.24.1450
+filebrowser/filebrowser:v2.62.1
+jellyfin/jellyfin:2026031605
+nastool/nas-tools:3.2.3-debian
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
