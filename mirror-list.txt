@@ -1,9 +1,5 @@
 [pending]
-linuxserver/qbittorrent:5.1.4
-linuxserver/jackett:0.24.1450
-filebrowser/filebrowser:v2.62.1
-jellyfin/jellyfin:2026031605
-nastool/nas-tools:3.2.3-debian
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -21,3 +17,8 @@ snowdreamtech/frpc:0.67
 ubuntu:24.04
 prom/prometheus:v2.40.0
 busybox:1.36
+linuxserver/qbittorrent:5.1.4
+linuxserver/jackett:0.24.1450
+filebrowser/filebrowser:v2.62.1
+jellyfin/jellyfin:2026031605
+nastool/nas-tools:3.2.3-debian
