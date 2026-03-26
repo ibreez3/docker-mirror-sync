@@ -1,5 +1,5 @@
 [pending]
-coleifer/sqlite-web:latest
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -23,3 +23,4 @@ filebrowser/filebrowser:v2.62.1
 jellyfin/jellyfin:2026031605
 nastool/nas-tools:3.2.3-debian
 hsuyelin/nas-tools:3.4.1-debian
+coleifer/sqlite-web:latest
