@@ -1,5 +1,5 @@
 [pending]
-postgres:17-alpine
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -25,3 +25,4 @@ nastool/nas-tools:3.2.3-debian
 hsuyelin/nas-tools:3.4.1-debian
 coleifer/sqlite-web:latest
 adminer:5.4.2-standalone
+postgres:17-alpine
