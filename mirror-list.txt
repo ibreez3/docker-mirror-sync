@@ -1,7 +1,5 @@
 [pending]
-node:22-alpine
-nginx:1.27-alpine
-alpine:3.21
+
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
@@ -44,3 +42,5 @@ goharbor/harbor-portal:v2.4.2
 goharbor/harbor-db:v2.4.2
 goharbor/prepare:v2.4.2
 rabbitmq:4.3.0-management
+nginx:1.27-alpine
+alpine:3.21
