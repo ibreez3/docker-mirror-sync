@@ -1,5 +1,7 @@
 [pending]
-
+node:22-alpine
+nginx:1.27-alpine
+alpine:3.21
 [complete]
 ubuntu:22.04
 solanalabs/solana:v1.18.26
